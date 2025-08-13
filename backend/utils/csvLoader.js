@@ -29,23 +29,65 @@ const loadInitialData = async (filePath, Model, dataType = 'general') => {
               return;
             }
             
-            // Clear existing data for fresh load
-            await Model.deleteMany({});
+            // ✅ DON'T DELETE EXISTING DATA - USE UPSERT INSTEAD
+            // Insert/Update data without deleting existing records
+            let insertedCount = 0;
+            const errors = [];
+            const insertedData = [];
             
-            // Insert data into MongoDB
-            const insertedData = await Model.insertMany(results);
+            for (const record of results) {
+              try {
+                let savedRecord;
+                
+                // Use upsert based on unique identifiers to avoid duplicates
+                if (dataType === 'drivers' && record.licenseNumber) {
+                  // Upsert drivers by licenseNumber
+                  savedRecord = await Model.findOneAndUpdate(
+                    { licenseNumber: record.licenseNumber },
+                    record,
+                    { upsert: true, new: true }
+                  );
+                } else if (dataType === 'routes' && record.routeId) {
+                  // Upsert routes by routeId
+                  savedRecord = await Model.findOneAndUpdate(
+                    { routeId: record.routeId },
+                    record,
+                    { upsert: true, new: true }
+                  );
+                } else if (dataType === 'orders' && record.orderId) {
+                  // Upsert orders by orderId
+                  savedRecord = await Model.findOneAndUpdate(
+                    { orderId: record.orderId },
+                    record,
+                    { upsert: true, new: true }
+                  );
+                } else {
+                  // For records without unique identifiers, just insert
+                  savedRecord = await Model.create(record);
+                }
+                
+                if (savedRecord) {
+                  insertedData.push(savedRecord);
+                  insertedCount++;
+                }
+              } catch (error) {
+                console.error(`Error processing record:`, error);
+                errors.push(`Failed to process record: ${error.message}`);
+              }
+            }
             
             // If loading orders, link them to routes
-            if (dataType === 'orders') {
+            if (dataType === 'orders' && insertedData.length > 0) {
               await linkOrdersToRoutes(insertedData);
             }
             
-            console.log(`Successfully loaded ${insertedData.length} ${dataType} records from ${filePath}`);
+            console.log(`Successfully processed ${insertedCount} ${dataType} records from ${filePath}${errors.length > 0 ? ` (${errors.length} errors)` : ''}`);
             
             resolve({
               success: true,
-              message: `Successfully loaded ${insertedData.length} ${dataType} records`,
-              count: insertedData.length,
+              message: `Successfully processed ${insertedCount} ${dataType} records${errors.length > 0 ? ` (${errors.length} errors)` : ''}`,
+              count: insertedCount,
+              errors: errors,
               data: insertedData
             });
           } catch (insertError) {

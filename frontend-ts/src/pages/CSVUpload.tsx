@@ -46,7 +46,24 @@ interface DbStats {
 }
 
 const CSVUpload: React.FC = () => {
-  const [uploadedFiles, setUploadedFiles] = useState<CSVData[]>([]);
+  // Load upload history from localStorage on component mount
+  const [uploadedFiles, setUploadedFiles] = useState<CSVData[]>(() => {
+    try {
+      const saved = localStorage.getItem('csvUploadHistory');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        // Convert uploadDate strings back to Date objects
+        return parsed.map((file: CSVData & { uploadDate: string | Date }) => ({
+          ...file,
+          uploadDate: new Date(file.uploadDate)
+        }));
+      }
+      return [];
+    } catch (error) {
+      console.error('Failed to load upload history from localStorage:', error);
+      return [];
+    }
+  });
   const [dragActive, setDragActive] = useState(false);
   const [activeTab, setActiveTab] = useState('upload');
   const [selectedFile, setSelectedFile] = useState<CSVData | null>(null);
@@ -60,6 +77,15 @@ const CSVUpload: React.FC = () => {
       console.error('Failed to load database stats:', error);
     }
   }, []);
+
+  // Save upload history to localStorage whenever it changes
+  useEffect(() => {
+    try {
+      localStorage.setItem('csvUploadHistory', JSON.stringify(uploadedFiles));
+    } catch (error) {
+      console.error('Failed to save upload history to localStorage:', error);
+    }
+  }, [uploadedFiles]);
 
   useEffect(() => {
     loadDatabaseStats();
@@ -177,6 +203,15 @@ const CSVUpload: React.FC = () => {
     }
   };
 
+  const handleClearUploadHistory = () => {
+    if (confirm('Are you sure you want to clear the upload history? This will only clear the history, not the data in the database.')) {
+      setUploadedFiles([]);
+      setSelectedFile(null);
+      localStorage.removeItem('csvUploadHistory');
+      alert('Upload history cleared successfully');
+    }
+  };
+
   const handleDeleteFile = (id: string) => {
     setUploadedFiles(prev => prev.filter(f => f.id !== id));
     if (selectedFile?.id === id) {
@@ -268,6 +303,10 @@ const CSVUpload: React.FC = () => {
           <Button variant="outline" onClick={() => loadDatabaseStats()}>
             <BarChart3 className="h-4 w-4 mr-2" />
             Refresh Stats
+          </Button>
+          <Button variant="destructive" onClick={handleClearUploadHistory}>
+            <Trash2 className="h-4 w-4 mr-2" />
+            Clear History
           </Button>
         </div>
       </div>

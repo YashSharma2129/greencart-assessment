@@ -56,6 +56,12 @@ export const csvApi = {
     return response.data;
   },
 
+  // Clear specific data type
+  clearSpecificData: async (type: 'drivers' | 'orders' | 'routes'): Promise<CSVUploadResponse> => {
+    const response = await api.delete(`/data/clear/${type}`);
+    return response.data;
+  },
+
   // Download CSV template
   downloadTemplate: (type: 'drivers' | 'orders' | 'routes'): void => {
     const templates = {

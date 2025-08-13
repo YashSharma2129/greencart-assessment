@@ -232,10 +232,61 @@ const clearAllData = async (req, res) => {
   }
 };
 
+// Clear specific data type
+const clearSpecificData = async (req, res) => {
+  try {
+    const { type } = req.params;
+
+    // Check if user is admin
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. Admin privileges required.'
+      });
+    }
+
+    let Model;
+    switch (type) {
+      case 'drivers':
+        Model = require('../models/Driver');
+        break;
+      case 'routes':
+        Model = require('../models/Route');
+        break;
+      case 'orders':
+        Model = require('../models/Order');
+        break;
+      default:
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid data type. Use: drivers, routes, or orders'
+        });
+    }
+
+    const deletedCount = await Model.countDocuments();
+    await Model.deleteMany({});
+    
+    res.json({
+      success: true,
+      message: `Cleared ${deletedCount} ${type} records`,
+      deletedCount
+    });
+
+  } catch (error) {
+    console.error('Clear specific data error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error clearing data',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
 module.exports = {
   initializeData,
   uploadCsvData,
   getDatabaseStats,
   clearAllData,
+  clearSpecificData,
   upload
 };
