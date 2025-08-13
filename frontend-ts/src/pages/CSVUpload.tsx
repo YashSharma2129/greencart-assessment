@@ -9,7 +9,7 @@ import { Badge } from '../components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { csvApi } from '../services/csvApi';
-import { showSuccessToast, showErrorToast, showInfoToast } from '../hooks/use-toast';
+import { showSuccessToast, showErrorToast } from '../hooks/use-toast';
 import {
   Upload,
   FileText,
