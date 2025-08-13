@@ -181,7 +181,6 @@ const CSVUpload: React.FC = () => {
     setUploadedFiles(prev => prev.filter(f => f.id !== id));
     if (selectedFile?.id === id) {
       setSelectedFile(null);
-      setValidationErrors([]);
     }
   };
 
