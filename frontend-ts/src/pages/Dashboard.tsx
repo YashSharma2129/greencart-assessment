@@ -118,9 +118,11 @@ const Dashboard: React.FC = () => {
       await dataApi.initializeData();
       toast.success('Sample data initialized successfully');
       await fetchDashboardData();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to initialize data:', error);
-      const errorMessage = error?.response?.data?.message || error?.message || 'Failed to initialize sample data';
+      const errorMessage = (error as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message || 
+                          (error as { message?: string })?.message || 
+                          'Failed to initialize sample data';
       setInitError(errorMessage);
       
       if (errorMessage.includes('Access denied') || errorMessage.includes('Admin privileges required')) {

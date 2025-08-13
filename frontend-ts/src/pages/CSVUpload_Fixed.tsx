@@ -39,13 +39,6 @@ interface CSVData {
   errors: string[];
 }
 
-interface ValidationError {
-  row: number;
-  field: string;
-  message: string;
-  value: string;
-}
-
 interface DbStats {
   totals: { drivers: number; routes: number; orders: number };
   ordersByStatus: Record<string, number>;
@@ -57,7 +50,6 @@ const CSVUpload: React.FC = () => {
   const [dragActive, setDragActive] = useState(false);
   const [activeTab, setActiveTab] = useState('upload');
   const [selectedFile, setSelectedFile] = useState<CSVData | null>(null);
-  const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
   const [dbStats, setDbStats] = useState<DbStats | null>(null);
 
   const loadDatabaseStats = useCallback(async () => {
@@ -151,14 +143,14 @@ const CSVUpload: React.FC = () => {
     }
   }, []);
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
+  const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
     
     const files = Array.from(e.dataTransfer.files);
     handleFiles(files);
-  }, []);
+  };
 
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);

@@ -1,25 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
-import { Alert, AlertDescription } from '../components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
-import { Badge } from '../components/ui/badge';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import {
   Play,
-  Pause,
   RotateCcw,
-  TrendingUp,
-  TrendingDown,
-  Route,
-  Truck,
-  Package,
-  Activity,
   DollarSign,
   Timer,
-  AlertCircle,
-  CheckCircle,
   BarChart3,
   Settings,
   Download,
@@ -40,8 +29,6 @@ import {
   PieChart,
   Pie,
   Cell,
-  LineChart,
-  Line
 } from 'recharts';
 import { simulationApi } from '../services/simulationApi';
 import { toast } from 'sonner';
@@ -111,9 +98,9 @@ const Simulation: React.FC = () => {
       // Refresh history
       await fetchSimulationHistory();
       
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Simulation failed:', error);
-      toast.error(error.response?.data?.message || 'Simulation failed. Please try again.');
+      toast.error((error as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Simulation failed. Please try again.');
     } finally {
       setIsRunning(false);
       setLoading(false);
