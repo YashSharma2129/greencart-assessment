@@ -330,9 +330,9 @@ VITE_API_URL=https://your-backend-url.railway.app
 ## 📞 Support & Contact
 
 For technical questions or assessment clarification:
-- **Email**: yash.rathore2003@gmail.com
-- **LinkedIn**: [Your LinkedIn Profile]
-- **GitHub**: [Your GitHub Profile]
+- **Email**: yash25578@gmail.com
+- **LinkedIn**: https://www.linkedin.com/in/yash-sharma-a7a074236/
+- **GitHub**:https://github.com/YashSharma2129
 
 ---
 
