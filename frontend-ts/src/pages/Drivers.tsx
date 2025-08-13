@@ -28,6 +28,7 @@ import {
   Timer
 } from 'lucide-react';
 import { formatDateTime } from '../lib/utils';
+import { showSuccessToast, showErrorToast, showLoadingToast, dismissToast } from '../hooks/use-toast';
 import type { Driver, CreateDriverInput } from '../types';
 
 const Drivers: React.FC = () => {
@@ -65,6 +66,11 @@ const Drivers: React.FC = () => {
         assignedRoute: formData.assignedRoute === 'none' ? undefined : formData.assignedRoute,
       };
 
+      const loadingToast = showLoadingToast(
+        editingDriver ? 'Updating driver...' : 'Creating driver...',
+        'Please wait while we process your request'
+      );
+
       let success = false;
       if (editingDriver) {
         success = await updateDriver(editingDriver._id, driverData);
@@ -73,8 +79,23 @@ const Drivers: React.FC = () => {
       }
 
       if (success) {
+        dismissToast(loadingToast);
+        showSuccessToast(
+          editingDriver ? 'Driver Updated!' : 'Driver Created!',
+          editingDriver 
+            ? `Driver "${formData.name}" has been updated successfully`
+            : `Driver "${formData.name}" has been created successfully`
+        );
         handleCloseDialog();
       }
+    } catch (error) {
+      console.error('Form submission error:', error);
+      showErrorToast(
+        'Operation Failed',
+        editingDriver 
+          ? 'Failed to update driver. Please try again.'
+          : 'Failed to create driver. Please try again.'
+      );
     } finally {
       setFormLoading(false);
     }
@@ -98,7 +119,15 @@ const Drivers: React.FC = () => {
 
   const handleDelete = async (driver: Driver) => {
     if (window.confirm(`Are you sure you want to delete driver ${driver.name}?`)) {
-      await deleteDriver(driver._id);
+      try {
+        const loadingToast = showLoadingToast('Deleting driver...', 'Please wait');
+        await deleteDriver(driver._id);
+        dismissToast(loadingToast);
+        showSuccessToast('Driver Deleted!', `Driver "${driver.name}" has been deleted successfully`);
+      } catch (error) {
+        console.error('Delete error:', error);
+        showErrorToast('Delete Failed', 'Failed to delete driver. Please try again.');
+      }
     }
   };
 

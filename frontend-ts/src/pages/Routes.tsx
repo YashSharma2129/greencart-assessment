@@ -24,16 +24,25 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import { formatDateTime } from '../lib/utils';
+import { showSuccessToast, showErrorToast, showLoadingToast, dismissToast } from '../hooks/use-toast';
 import type { Route as RouteType, CreateRouteInput } from '../types';
 
 const Routes: React.FC = () => {
   const { routes, loading, error, createRoute, updateRoute, deleteRoute } = useRoutes();
+  
+  const generateUniqueRouteId = () => {
+    // Generate a unique route ID based on current timestamp
+    const timestamp = Date.now();
+    const random = Math.floor(Math.random() * 1000);
+    return `R${timestamp}${random}`;
+  };
+  
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingRoute, setEditingRoute] = useState<RouteType | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState('all');
   const [formData, setFormData] = useState<CreateRouteInput>({
-    routeId: '',
+    routeId: generateUniqueRouteId(),
     routeName: '',
     startLocation: '',
     endLocation: '',
@@ -74,9 +83,25 @@ const Routes: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate required fields
+    if (!formData.routeId || !formData.routeName || !formData.startLocation || 
+        !formData.endLocation || formData.distance <= 0 || formData.baseTime <= 0) {
+      showErrorToast('Validation Error', 'Please fill in all required fields');
+      return;
+    }
+    
     setFormLoading(true);
+    const loadingToast = showLoadingToast(
+      editingRoute ? 'Updating route...' : 'Creating route...',
+      'Please wait while we process your request'
+    );
 
     try {
+      // Debug logging
+      console.log('Submitting form data:', formData);
+      console.log('Editing route:', editingRoute);
+      
       let success = false;
       if (editingRoute) {
         success = await updateRoute(editingRoute._id, formData);
@@ -85,8 +110,24 @@ const Routes: React.FC = () => {
       }
 
       if (success) {
+        dismissToast(loadingToast);
+        showSuccessToast(
+          editingRoute ? 'Route Updated!' : 'Route Created!',
+          editingRoute 
+            ? `Route "${formData.routeName}" has been updated successfully`
+            : `Route "${formData.routeName}" has been created successfully`
+        );
         handleCloseDialog();
       }
+    } catch (error) {
+      console.error('Form submission error:', error);
+      dismissToast(loadingToast);
+      showErrorToast(
+        'Operation Failed',
+        editingRoute 
+          ? 'Failed to update route. Please try again.'
+          : 'Failed to create route. Please try again.'
+      );
     } finally {
       setFormLoading(false);
     }
@@ -95,7 +136,7 @@ const Routes: React.FC = () => {
   const handleEdit = (route: RouteType) => {
     setEditingRoute(route);
     setFormData({
-      routeId: route.routeId || '',
+      routeId: route.routeId || `R${route._id}`, // Ensure routeId is set
       routeName: route.routeName,
       startLocation: route.startLocation,
       endLocation: route.endLocation,
@@ -109,7 +150,15 @@ const Routes: React.FC = () => {
 
   const handleDelete = async (route: RouteType) => {
     if (window.confirm(`Are you sure you want to delete route "${route.routeName}"?`)) {
-      await deleteRoute(route._id);
+      try {
+        const loadingToast = showLoadingToast('Deleting route...', 'Please wait');
+        await deleteRoute(route._id);
+        dismissToast(loadingToast);
+        showSuccessToast('Route Deleted!', `Route "${route.routeName}" has been deleted successfully`);
+      } catch (error) {
+        console.error('Delete error:', error);
+        showErrorToast('Delete Failed', 'Failed to delete route. Please try again.');
+      }
     }
   };
 
@@ -117,7 +166,7 @@ const Routes: React.FC = () => {
     setIsDialogOpen(false);
     setEditingRoute(null);
     setFormData({
-      routeId: '',
+      routeId: generateUniqueRouteId(),
       routeName: '',
       startLocation: '',
       endLocation: '',
@@ -159,6 +208,21 @@ const Routes: React.FC = () => {
     return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
   };
 
+  const handleOpenNewRouteDialog = () => {
+    setEditingRoute(null);
+    setFormData({
+      routeId: generateUniqueRouteId(),
+      routeName: '',
+      startLocation: '',
+      endLocation: '',
+      distance: 0,
+      trafficLevel: 'Low' as const,
+      baseTime: 0,
+      estimatedTime: 0,
+    });
+    setIsDialogOpen(true);
+  };
+
   return (
     <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
@@ -171,7 +235,7 @@ const Routes: React.FC = () => {
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button>
+            <Button onClick={handleOpenNewRouteDialog}>
               <Plus className="h-4 w-4 mr-2" />
               Add Route
             </Button>
@@ -191,6 +255,23 @@ const Routes: React.FC = () => {
               </DialogHeader>
               
               <div className="grid gap-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="routeId">Route ID</Label>
+                  <Input
+                    id="routeId"
+                    value={formData.routeId}
+                    onChange={(e) => handleChange('routeId', e.target.value)}
+                    placeholder="e.g., R001"
+                    required
+                    disabled={!!editingRoute} // Disable editing for existing routes
+                  />
+                  {editingRoute && (
+                    <p className="text-xs text-muted-foreground">
+                      Route ID cannot be changed once created
+                    </p>
+                  )}
+                </div>
+                
                 <div className="space-y-2">
                   <Label htmlFor="routeName">Route Name</Label>
                   <Input
@@ -257,6 +338,36 @@ const Routes: React.FC = () => {
                       placeholder="Auto-calculated"
                       required
                     />
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="baseTime">Base Time (minutes)</Label>
+                    <Input
+                      id="baseTime"
+                      type="number"
+                      min="0"
+                      value={formData.baseTime || ''}
+                      onChange={(e) => handleChange('baseTime', Number(e.target.value))}
+                      placeholder="Base time"
+                      required
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="trafficLevel">Traffic Level</Label>
+                    <select
+                      id="trafficLevel"
+                      value={formData.trafficLevel}
+                      onChange={(e) => handleChange('trafficLevel', e.target.value)}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      required
+                    >
+                      <option value="Low">Low</option>
+                      <option value="Medium">Medium</option>
+                      <option value="High">High</option>
+                    </select>
                   </div>
                 </div>
                 
@@ -407,7 +518,7 @@ const Routes: React.FC = () => {
                     }
                   </p>
                   {!searchTerm && activeTab === 'all' && (
-                    <Button onClick={() => setIsDialogOpen(true)}>
+                    <Button onClick={handleOpenNewRouteDialog}>
                       <Plus className="h-4 w-4 mr-2" />
                       Add Route
                     </Button>

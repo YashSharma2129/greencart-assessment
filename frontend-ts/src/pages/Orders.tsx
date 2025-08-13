@@ -25,6 +25,7 @@ import {
   CheckCircle,
 } from 'lucide-react';
 import { formatDateTime } from '../lib/utils';
+import { showSuccessToast, showErrorToast, showLoadingToast, dismissToast } from '../hooks/use-toast';
 import type { Order, CreateOrderInput, OrderStatus } from '../types';
 
 const Orders: React.FC = () => {
@@ -86,6 +87,11 @@ const Orders: React.FC = () => {
         orderData.orderNumber = orderData.orderNumber || generateOrderNumber();
       }
 
+      const loadingToast = showLoadingToast(
+        editingOrder ? 'Updating order...' : 'Creating order...',
+        'Please wait while we process your request'
+      );
+
       let success = false;
       if (editingOrder) {
         success = await updateOrder(editingOrder._id, orderData);
@@ -94,8 +100,23 @@ const Orders: React.FC = () => {
       }
 
       if (success) {
+        dismissToast(loadingToast);
+        showSuccessToast(
+          editingOrder ? 'Order Updated!' : 'Order Created!',
+          editingOrder 
+            ? `Order "${orderData.orderNumber}" has been updated successfully`
+            : `Order "${orderData.orderNumber}" has been created successfully`
+        );
         handleCloseDialog();
       }
+    } catch (error) {
+      console.error('Form submission error:', error);
+      showErrorToast(
+        'Operation Failed',
+        editingOrder 
+          ? 'Failed to update order. Please try again.'
+          : 'Failed to create order. Please try again.'
+      );
     } finally {
       setFormLoading(false);
     }
@@ -117,7 +138,15 @@ const Orders: React.FC = () => {
 
   const handleDelete = async (order: Order) => {
     if (window.confirm(`Are you sure you want to delete order ${order.orderNumber}?`)) {
-      await deleteOrder(order._id);
+      try {
+        const loadingToast = showLoadingToast('Deleting order...', 'Please wait');
+        await deleteOrder(order._id);
+        dismissToast(loadingToast);
+        showSuccessToast('Order Deleted!', `Order "${order.orderNumber}" has been deleted successfully`);
+      } catch (error) {
+        console.error('Delete error:', error);
+        showErrorToast('Delete Failed', 'Failed to delete order. Please try again.');
+      }
     }
   };
 

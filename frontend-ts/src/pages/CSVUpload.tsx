@@ -9,6 +9,7 @@ import { Badge } from '../components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { csvApi } from '../services/csvApi';
+import { showSuccessToast, showErrorToast, showInfoToast } from '../hooks/use-toast';
 import {
   Upload,
   FileText,
@@ -132,6 +133,11 @@ const CSVUpload: React.FC = () => {
           } : f
         ));
         
+        showSuccessToast(
+          'File Uploaded Successfully!',
+          `${file.name} has been processed successfully with ${result.data?.count || 0} records`
+        );
+        
         await loadDatabaseStats();
       } else {
         throw new Error(result.message || 'Upload failed');
@@ -146,6 +152,8 @@ const CSVUpload: React.FC = () => {
           errors: [errorMessage]
         } : f
       ));
+      
+      showErrorToast('Upload Failed', errorMessage);
     }
   }, [loadDatabaseStats]);
 
@@ -154,7 +162,7 @@ const CSVUpload: React.FC = () => {
       if (file.type === 'text/csv' || file.name.endsWith('.csv')) {
         processFile(file);
       } else {
-        alert(`${file.name} is not a CSV file. Please upload only CSV files.`);
+        showErrorToast('Invalid File Type', `${file.name} is not a CSV file. Please upload only CSV files.`);
       }
     });
   }, [processFile]);
@@ -192,14 +200,13 @@ const CSVUpload: React.FC = () => {
       const result = await csvApi.initializeData();
       if (result.success) {
         await loadDatabaseStats();
-        alert('Sample data initialized successfully!');
+        showSuccessToast('Sample Data Initialized!', 'Sample data has been loaded successfully');
       } else {
-        alert(`Failed to initialize data: ${result.message}`);
+        showErrorToast('Initialization Failed', `Failed to initialize data: ${result.message}`);
       }
     } catch (error) {
       console.error('Failed to initialize sample data:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to initialize data';
-      alert(`Failed to initialize data: ${errorMessage}`);
+      showErrorToast('Initialization Failed', 'Failed to initialize sample data. Please try again.');
     }
   };
 
