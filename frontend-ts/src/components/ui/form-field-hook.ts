@@ -3,11 +3,15 @@ import { useFormContext, useFormState } from "react-hook-form"
 
 export const FormFieldContext = React.createContext<{
   name: string
-}>({} as any)
+}>({
+  name: ""
+})
 
 export const FormItemContext = React.createContext<{
   id: string
-}>({} as any)
+}>({
+  id: ""
+})
 
 export const useFormField = () => {
   const fieldContext = React.useContext(FormFieldContext)
